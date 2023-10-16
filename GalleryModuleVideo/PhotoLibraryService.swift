@@ -16,35 +16,42 @@ class PhotoLibraryService: ObservableObject {
     
     var authorizationStatus: PHAuthorizationStatus = .notDetermined
     var videoCachingManager = PHCachingImageManager()
-    @Published var results = PHFetchResultCollection(fetchResult: .init())
+    
+    var videoAssets: [AVURLAsset] = []
     
     func requestAuthorization(handleError: ((AuthorizationError?) -> Void)? = nil) {
         PHPhotoLibrary.requestAuthorization { status in
-           // DispatchQueue.main.async {
+            DispatchQueue.main.async {
                 self.authorizationStatus = status
                 switch status {
                 case .authorized, .limited:
-                    self.fetchVideos()
+                    self.fetchVideoAssets()
                 case .denied, .notDetermined, .restricted:
                     handleError?(.restrictedAccess)
+                    print("Error Found!")
                 default:
                     break
                 }
-           // }
+            }
         }
     }
     
-    private func fetchVideos() {
-        videoCachingManager.allowsCachingHighQualityImages = false
-        
-        // assign options to fetch videos based
+    private func fetchVideoAssets() {
+
         let fetchOptions = PHFetchOptions()
-        fetchOptions.includeHiddenAssets = false
-        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+//        fetchOptions.fetchLimit = 3
         
-        DispatchQueue.main.async {
-            self.results.fetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions)
-            print(self.results.fetchResult)
-        }
-    }
+        // Specify the duration range in seconds
+        let minDuration = NSNumber(value: 0)
+        let maxDuration = NSNumber(value: 10)
+
+        // Use %@ as the placeholder for the arguments
+        fetchOptions.predicate = NSPredicate(format: "duration >= %@ AND duration <= %@", minDuration, maxDuration)
+//        fetchOptions.predicate = NSPredicate(format: "duration >= %i AND duration <= %i", argumentArray: [60,120])
+        
+        
+        let videoFetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions)
+        print("Fetched Videos : ",videoFetchResult.count)
+        
+     }
 }
