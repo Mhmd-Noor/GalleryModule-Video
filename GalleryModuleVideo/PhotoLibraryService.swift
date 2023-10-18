@@ -7,19 +7,18 @@
 
 import Foundation
 import Photos
-
-enum AuthorizationError: Error {
-    case restrictedAccess
-}
+import UIKit
 
 class PhotoLibraryService: ObservableObject {
     
     var authorizationStatus: PHAuthorizationStatus = .notDetermined
     var videoCachingManager = PHCachingImageManager()
     
-    var videoAssets: [AVURLAsset] = []
+    @Published var videoAssets: [PHAsset] = []
+    @Published var thumbnails: [UIImage] = []
+    @Published var videosCount: Int = 0
     
-    func requestAuthorization(handleError: ((AuthorizationError?) -> Void)? = nil) {
+    func requestAuthorization() {
         PHPhotoLibrary.requestAuthorization { status in
             DispatchQueue.main.async {
                 self.authorizationStatus = status
@@ -27,7 +26,6 @@ class PhotoLibraryService: ObservableObject {
                 case .authorized, .limited:
                     self.fetchVideoAssets()
                 case .denied, .notDetermined, .restricted:
-                    handleError?(.restrictedAccess)
                     print("Error Found!")
                 default:
                     break
@@ -49,9 +47,31 @@ class PhotoLibraryService: ObservableObject {
         fetchOptions.predicate = NSPredicate(format: "duration >= %@ AND duration <= %@", minDuration, maxDuration)
 //        fetchOptions.predicate = NSPredicate(format: "duration >= %i AND duration <= %i", argumentArray: [60,120])
         
+        let videoFetchResult = PHAsset.fetchAssets(with: .video, options: nil)
+        self.videosCount = videoFetchResult.count
+        print("Total Videos",videoFetchResult.count)
+
         
-        let videoFetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions)
-        print("Fetched Videos : ",videoFetchResult.count)
+        // Load Thumbnails
+        for index in 0..<videoFetchResult.count {
+            PHCachingImageManager
+                .default()
+                .requestImage(for: videoFetchResult[index],
+                              targetSize: CGSize(width: 100, height: 100),
+                              contentMode: .aspectFill,
+                              options: nil) { (photo, info) in
+                    
+                    // When degraded image is provided, the completion handler will be called again.
+                    guard !(info?[PHImageResultIsDegradedKey] as? Bool ?? false) else {
+                        return
+                    }
+                    self.thumbnails.append(photo!)
+                    
+                }
+            self.videoAssets.append(videoFetchResult[index])
+        }
+        
+        print("Thumbnails size: ",self.thumbnails.count)
         
      }
 }

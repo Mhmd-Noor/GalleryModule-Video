@@ -6,18 +6,31 @@
 //
 
 import SwiftUI
+import Photos
+import AVKit
 
 struct ContentView: View {
     
-    @StateObject var photoLibrayService = PhotoLibraryService()
+    @ObservedObject var photoLibrayService: PhotoLibraryService
     
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-            Text("Hello, world!")
+        ScrollView([.vertical]){
+            VStack {
+                
+                Text("Fetched Videos: \(photoLibrayService.videosCount)")
+                    .padding(10)
+                    .background(Color.gray)
+                
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
+                    ForEach(photoLibrayService.thumbnails, id: \.self) { image in
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                }
+                
+            }
         }
-        .padding()
         .onAppear(perform: {
             photoLibrayService.requestAuthorization()
         })
