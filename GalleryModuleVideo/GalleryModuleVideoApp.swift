@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct GalleryModuleVideoApp: App {
+    
+    @StateObject var photoLibrayService = PhotoLibraryService()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(photoLibrayService: photoLibrayService)
         }
     }
 }

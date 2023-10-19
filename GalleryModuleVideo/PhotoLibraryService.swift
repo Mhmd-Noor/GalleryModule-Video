@@ -13,10 +13,11 @@ class PhotoLibraryService: ObservableObject {
     
     var authorizationStatus: PHAuthorizationStatus = .notDetermined
     var videoCachingManager = PHCachingImageManager()
-    
-    @Published var videoAssets: [PHAsset] = []
-    @Published var thumbnails: [UIImage] = []
+
     @Published var videosCount: Int = 0
+    @Published var thumbnails: [UIImage] = []
+    @Published var allFetchedMedia: [Int: Media] = [:]
+    @Published var localVideoRequestCriteriaBuilder = RequestCriteriaBuilder()
     
     func requestAuthorization() {
         PHPhotoLibrary.requestAuthorization { status in
@@ -35,43 +36,50 @@ class PhotoLibraryService: ObservableObject {
     }
     
     private func fetchVideoAssets() {
-
-        let fetchOptions = PHFetchOptions()
-//        fetchOptions.fetchLimit = 3
         
-        // Specify the duration range in seconds
-        let minDuration = NSNumber(value: 0)
-        let maxDuration = NSNumber(value: 10)
-
-        // Use %@ as the placeholder for the arguments
-        fetchOptions.predicate = NSPredicate(format: "duration >= %@ AND duration <= %@", minDuration, maxDuration)
-//        fetchOptions.predicate = NSPredicate(format: "duration >= %i AND duration <= %i", argumentArray: [60,120])
+//        let fetchOptions = PHFetchOptions()
+////        fetchOptions.fetchLimit = 3
+//        
+//        // Specify the duration range in seconds
+//        let minDuration = NSNumber(value: 0)
+//        let maxDuration = NSNumber(value: 10)
+//
+//        // Use %@ as the placeholder for the arguments
+//        fetchOptions.predicate = NSPredicate(format: "duration >= %@ AND duration <= %@", minDuration, maxDuration)
+////        fetchOptions.predicate = NSPredicate(format: "duration >= %i AND duration <= %i", argumentArray: [60,120])
+//        
+//        let videoFetchResult = PHAsset.fetchAssets(with: .video, options: nil)
+//        self.videosCount = videoFetchResult.count
+//        print("Total Videos",videoFetchResult.count)
         
-        let videoFetchResult = PHAsset.fetchAssets(with: .video, options: nil)
-        self.videosCount = videoFetchResult.count
-        print("Total Videos",videoFetchResult.count)
-
+        let predicate = Predicate()
+        predicate.makePredicateLogic(key: .mediaType, comparator: .equal , specifier: .objectSpecifier)
+        predicate.addArgument(PHAssetMediaType.video.rawValue)
         
-        // Load Thumbnails
-        for index in 0..<videoFetchResult.count {
-            PHCachingImageManager
-                .default()
-                .requestImage(for: videoFetchResult[index],
-                              targetSize: CGSize(width: 100, height: 100),
-                              contentMode: .aspectFill,
-                              options: nil) { (photo, info) in
-                    
-                    // When degraded image is provided, the completion handler will be called again.
-                    guard !(info?[PHImageResultIsDegradedKey] as? Bool ?? false) else {
-                        return
-                    }
-                    self.thumbnails.append(photo!)
-                    
-                }
-            self.videoAssets.append(videoFetchResult[index])
+        
+        allFetchedMedia = localVideoRequestCriteriaBuilder
+          .setFetchLimit(2)
+          .setPredicate(predicate)
+          .setSortDescriptors(.byCreationDateAscending)
+          .build()
+        
+        self.videosCount = allFetchedMedia.count
+        
+        print("all media: ",allFetchedMedia)
+        
+        //load thumbnails
+        for (_, value) in allFetchedMedia {
+            PHCachingImageManager.default().requestImage(for: value.asset,
+                                                         targetSize: CGSize(width: 100, height: 100),
+                                                         contentMode: .aspectFill,
+                                                         options: nil) { (photo, info) in
+                
+                // When degraded image is provided, the completion handler will be called again.
+                guard !(info?[PHImageResultIsDegradedKey] as? Bool ?? false) else { return }
+                self.thumbnails.append(photo!)
+            
+            }
         }
-        
-        print("Thumbnails size: ",self.thumbnails.count)
-        
+
      }
 }
