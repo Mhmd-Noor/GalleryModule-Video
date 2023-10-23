@@ -9,8 +9,11 @@ import Foundation
 
 class DataModel: ObservableObject{
     
-    @Published var allMedia: [Int: Media] = [:]
     @Published var count = 0
-    @Published var localVideoRequestCriteriaBuilder = RequestCriteriaBuilder()
+    @Published var localVideoRequestBuilder = LocalVideoRequestBuilder()
+    @Published var mediaResult = MediaResult<LocalVideoMedia>()
+    @Published var mediaGroupResult = MediaResult<LocalVideoGroupMedia>()
+    @Published var mediaProviderBuilder = LocalMediaProviderBuilder()
+    @Published var localVideoGroupRequestBuilder = LocalVidoeGroupRequestBuilder()
 
 }

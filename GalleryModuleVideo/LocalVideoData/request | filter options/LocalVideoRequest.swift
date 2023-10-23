@@ -9,15 +9,61 @@ import Foundation
 import Photos
 import UIKit
 
-class LocalVideoRequestCriteria: RequestCriteria{
+
+class LocalVideoRequest {
+    
+    //MARK: Media Fetching options
+    var fetchLimit : Int? = 0
+    var includeAllBurstAssets: Bool? = false
+  //  var includeAssetSourceTypes = .typeUserLibrary // default
+    var includeHiddenAssets: Bool? = false
+   // fetchOptions.wantsIncrementalChangeDetails = true
+    var height: CGFloat? = 300
+    var width: CGFloat? = 400
+    var predicate = Predicate()
+    var sortDescriptors : [NSSortDescriptor] = []
+    var defultAlbumTitle: String? = "Recents"
+    var selectedAlbum: PHAssetCollection?
  
- //
+    
+    //MARK: Media Loading options
+    var deliveryMode: PHImageRequestOptionsDeliveryMode? = .opportunistic
+    var isSynchronous: Bool? = false
+    var normalizedCropRect: CGRect? = .zero
+    var isMaximumSizeImage: Bool? = false
+    private var _resizeMode: PHImageRequestOptionsResizeMode = .exact
+    var resizeMode: PHImageRequestOptionsResizeMode?{
+        get {
+            return normalizedCropRect != .zero ? .exact : PHImageRequestOptionsResizeMode.exact
+                
+        }
+        set(newValue) {
+            _resizeMode = normalizedCropRect != .zero ? .exact:  newValue!
+        }
+    }
+    var version: PHImageRequestOptionsVersion? = .current
+    var contentMode: PHImageContentMode? = .aspectFit
+    // iCloud
+    var isNetworkAccessAllowed: Bool? = false
+    // if isNetworkAccessAllowed is true, this handler will give, progress(0.0 to 1.0 floating point number), error(NSError), stop (bool), info
+    var progressHandler: PHAssetImageProgressHandler?
+    
+    
+    // MARK: Video Fetching options
+    var videoDeliveryMode: PHVideoRequestOptionsDeliveryMode? = .automatic
+    var videoVersion: PHVideoRequestOptionsVersion? = .current
+    var videoQuality: PHImageRequestOptionsDeliveryMode? = .highQualityFormat
+    var videoTimeRange: CMTimeRange?
+    
+    // MARK: Video Loading options
+    var isNetworkAccessAllowedForVideo: Bool? = false
+    var progressHandlerForVideo: PHAssetVideoProgressHandler?
     
 }
 
-class RequestCriteriaBuilder {
-    private var requestCriteria: LocalVideoRequestCriteria = LocalVideoRequestCriteria()
-    var localImageProvider = LocalVideoProvider()
+
+class LocalVideoRequestBuilder {
+    private var requestCriteria: LocalVideoRequest = LocalVideoRequest()
 
     func setFetchLimit(_ fetchLimit: Int) -> Self {
         requestCriteria.fetchLimit = fetchLimit
@@ -57,6 +103,10 @@ class RequestCriteriaBuilder {
     
     func setDefultAlbumTitle(_ title: String) -> Self {
         requestCriteria.defultAlbumTitle = title
+        return self
+    }
+    func setSelectedAlbum(_ album: PHAssetCollection) -> Self {
+        requestCriteria.selectedAlbum = album
         return self
     }
     
@@ -99,20 +149,8 @@ class RequestCriteriaBuilder {
         return self
     }
     
-    //func
-    func build() -> [Int: Media] {
-        
-        let allMedia = self.localImageProvider.getMediaData(fetchOptions: self.requestCriteria)
-        return allMedia
-        
-    }
-    
-    
-    func build(_ media: Media, completion: @escaping (UIImage?) -> Void) {
-        media.loadVideoThumbnails(requestCriteria) { image in
-            // Handle the resolved image (or nil) here
-            completion(image)
-        }
+    func build() -> LocalVideoRequest {
+        return self.requestCriteria
     }
     
     

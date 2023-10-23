@@ -10,7 +10,7 @@ import UIKit
 import Photos
 
 
-class LocalVideoMedia: Media{
+class LocalVideoMedia: Video<LocalVideoRequest>{
    
     let asset: PHAsset
     
@@ -18,10 +18,10 @@ class LocalVideoMedia: Media{
         self.asset = asset
     }
     
-    func loadVideoThumbnails<T: RequestCriteria>(_ loadOptions: T, completion: @escaping (UIImage?) -> Void) {
+    override func loadVideoData(loadOptions: LocalVideoRequest, completion: @escaping (UIImage?) -> Void) {
+        
         let options = PHImageRequestOptions()
         
-        // for image delivery mode can be set to all the three but if i am loading video it can only be opportunistic otherwise nil
         options.deliveryMode =  loadOptions.deliveryMode!
         options.isNetworkAccessAllowed = loadOptions.isNetworkAccessAllowed!
         options.isSynchronous = loadOptions.isSynchronous!
@@ -33,10 +33,14 @@ class LocalVideoMedia: Media{
         
         PHCachingImageManager.default().requestImage(
             for: self.asset,
-            targetSize: (loadOptions.isMaximumSizeImage)! == true ? PHImageManagerMaximumSize : CGSize(width: loadOptions.width!, height: loadOptions.height!),
+            targetSize: CGSize(width: loadOptions.width!, height: loadOptions.height!),
             contentMode: loadOptions.contentMode!,
             options: options) { (image, info) in
-               completion(image)
+                
+                // When degraded image is provided, the completion handler will be called again.
+                guard !(info?[PHImageResultIsDegradedKey] as? Bool ?? false) else { return }
+                completion(image)
+                
             }
 
     }
